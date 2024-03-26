@@ -82,7 +82,7 @@ def merge_data(coords1, coords2, data1, data2):
     delta_data_Z = []
     # Build KD-tree from the points
     kdtree = KDTree(coords2)
-    with open('combined_data.txt', 'w') as combined_file:
+    with open('combined_data.txt', 'w') as combined_file, open('silvaco.grd', 'w') as grd_file, open('silvaco.dat', 'w') as dat_file:
         for index, (x1, y1, z1) in enumerate(coords1):
             tmp = np.array([x1, y1, z1])
             # Query the KD-tree for the closest point to the user-defined coordinate
@@ -102,6 +102,8 @@ def merge_data(coords1, coords2, data1, data2):
                 delta_data.append(ey1 - ey2)
                 # Write into .txt files (both combined, and .grd+.dat file for Allpix input for interpolation)
                 combined_file.write(f"{x1}, {y1}, {z1}, {ex1}, {ey1}, {ez2}\n")
+                grd_file.write(f"{x1} {y1} {z1}\n")
+                dat_file.write(f"{ex1} {ey1} {ez2}\n")
                 # Saving some quantities for data-quality monitoring
                 if((abs(x1 - closest_point[0]) >= 0) and (abs(x1 - closest_point[0]) <= x_tolerance)):
                     delta_x2.append(x1 - closest_point[0])
