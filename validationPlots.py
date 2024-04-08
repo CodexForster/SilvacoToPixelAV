@@ -5,6 +5,7 @@ import ROOT
 import matplotlib.pyplot as plt
 import langaus
 import optparse
+from scipy.spatial import KDTree
 
 parser = optparse.OptionParser("usage: %prog [options]\n")
 parser.add_option('-p', '--prodname', dest='filename', help="The name of 1st PixelAV dataset")
@@ -14,61 +15,57 @@ options, args = parser.parse_args()
 filename = options.filename
 filename2 = options.filename2
 
-def delta_histograms(arr1, arr2, name, unit):
-    delta = np.array(arr1) - np.array(arr2)
-    canvas = ROOT.TCanvas("cv","cv",1000,800)
-    hist_tmp = ROOT.TH1F(name, "Hist", 40, -20, 20)
-    for iter in range(len(delta)):
-        hist_tmp.Fill(delta[iter])
-    myMean = hist_tmp.GetMean()
-    myRMS = hist_tmp.GetRMS()
-    hist_tmp.Draw("hist")
-    ROOT.gStyle.SetOptStat(1);
-    hist_tmp.GetXaxis().SetTitle("Delta "+name+" ["+unit+"]")
-    hist_tmp.GetYaxis().SetTitle("Counts")
-    canvas.SaveAs("./delta_"+name+"_hist.png")
-    canvas.Clear()
-
-def single_histogram(arr,  name, unit, doFit=False, iter=1):
-    canvas = ROOT.TCanvas(f"cv_{iter}", f"cv_{iter}",1000,800)
-    hist_tmp = ROOT.TH1F(f'{name}', "Hist", 100, np.amin(arr), np.amax(arr))
-    for value in arr:
-        hist_tmp.Fill(value)
-    myMean = hist_tmp.GetMean()
-    myRMS = hist_tmp.GetRMS()
-    hist_tmp.SetLineColor(1)
-    hist_tmp.Draw("hist")
-    if doFit:
-        print("Setting up Langaus")
-        fit = langaus.LanGausFit()
-        print("Setup Langaus")
-        myLanGausFunction = fit.fit(hist_tmp, fitrange=(myMean-1.5*myRMS,myMean+3*myRMS))
-        myLanGausFunction.SetLineColor(1)
-        myLanGausFunction.Draw("same")
-    ROOT.gStyle.SetOptStat(1)
-    ROOT.gStyle.SetOptFit(1111)
-    hist_tmp.GetXaxis().SetTitle(name+" ["+unit+"]")
-    hist_tmp.GetYaxis().SetTitle("Counts")
-    canvas.SaveAs("./"+name+"_hist.png")
-    canvas.Clear()
 
 def analyze(event, threshold):
+    sumCh = np.sum(event)
     maxCh = np.amax(event)
-    (maxCh_idx, maxCh_idy) = np.unravel_index(np.argmax(event), event.shape)
-    # if (maxCh<threshold):
-    #     print("max ch less than threshold, warning.")
-    #     maxCh=0
-    #     maxCh_idx=0
-    #     maxCh_idy=0
-    max2Ch, (max2Ch_idx, max2Ch_idy) = find_second_max(event)
-    # if (max2Ch<threshold):
-    #     print("max2 ch less than threshold, warning.")
-    #     max2Ch=0
-    #     max2Ch_idx=0
-    #     max2Ch_idy=0
     x_span, y_span = find_span(event, threshold)
     area = count_above_threshold(event, threshold)
-    return maxCh, maxCh_idx, maxCh_idy, max2Ch, max2Ch_idx, max2Ch_idy, x_span, y_span, area
+    return sumCh, x_span, y_span, area
+
+def remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2):
+    # Convert all inputs to NumPy arrays
+    arr_events = np.array(arr_events)
+    cluster_truth = np.array(cluster_truth)
+    sumCharge = np.array(sumCharge)
+    xSpan = np.array(xSpan)
+    ySpan = np.array(ySpan)
+    Area = np.array(Area)
+    arr_events2 = np.array(arr_events2)
+    cluster_truth2 = np.array(cluster_truth2)
+    sumCharge2 = np.array(sumCharge2)
+    xSpan2 = np.array(xSpan2)
+    ySpan2 = np.array(ySpan2)
+    Area2 = np.array(Area2)
+
+    # Build KD-trees for both arrays
+    tree1 = KDTree(cluster_truth[:, 3:6].astype(float))
+    tree2 = KDTree(cluster_truth2[:, 3:6].astype(float))
+    
+    # Query common points using the KD-trees
+    distances, indices_array1 = tree1.query(cluster_truth2[:, 3:6].astype(float), k=1)
+    
+    # Filter out non-matching points based on distances
+    common_indices_array2 = np.where(distances == 0)[0]
+    common_indices_array1 = indices_array1[common_indices_array2]
+    
+    # Select common points from the original arrays
+    tmp_arr_events = arr_events[common_indices_array1]
+    tmp_cluster_truth = cluster_truth[common_indices_array1]
+    tmp_sumCharge = sumCharge[common_indices_array1]
+    tmp_xSpan = xSpan[common_indices_array1]
+    tmp_ySpan = ySpan[common_indices_array1]
+    tmp_Area = Area[common_indices_array1]
+    
+    tmp_arr_events2 = arr_events2[common_indices_array2]
+    tmp_cluster_truth2 = cluster_truth2[common_indices_array2]
+    tmp_sumCharge2 = sumCharge2[common_indices_array2]
+    tmp_xSpan2 = xSpan2[common_indices_array2]
+    tmp_ySpan2 = ySpan2[common_indices_array2]
+    tmp_Area2 = Area2[common_indices_array2]
+
+    return (tmp_arr_events, tmp_cluster_truth, tmp_sumCharge, tmp_xSpan, tmp_ySpan, tmp_Area, tmp_arr_events2, tmp_cluster_truth2, tmp_sumCharge2, tmp_xSpan2, tmp_ySpan2, tmp_Area2)
+
 
 def count_above_threshold(arr, threshold):
     return np.sum(arr > threshold)
@@ -82,7 +79,7 @@ def find_span(arr, threshold):
     # Calculate the spans
     x_span = x_max - x_min + 1
     y_span = y_max - y_min + 1
-    print("x, y span = ",x_span, ", ", y_span)
+    # print("x, y span = ",x_span, ", ", y_span)
     return x_span, y_span
 
 def find_second_max(arr):
@@ -101,16 +98,12 @@ def parse_file(filein, threshold):
 
     header = lines.pop(0).strip()
     pixelstats = lines.pop(0).strip()
-
     print("Header: ", header)
     print("Pixelstats: ", pixelstats)
+
+    counter = 0 # For running on mini dataset for debugging
     events = []
-    maxCharge = []
-    maxCharge_idx = []
-    maxCharge_idy = []
-    max2Charge = []
-    max2Charge_idx = []
-    max2Charge_idy = []
+    sumCharge = []
     xSpan = []
     ySpan = []
     Area = []
@@ -120,21 +113,15 @@ def parse_file(filein, threshold):
     b_getclusterinfo = False
 
     for line in lines:
-        if "<time slice 4000" in line:
-            cur_event = []
-            b_geteventinfo = True
-            continue
+        # if (counter == 10):
+        #     break
         if "<cluster>" in line:
             b_geteventinfo = False
             b_getclusterinfo = True
             if cur_event:  # Only append if cur_event is not empty
-                maxCh, maxCh_idx, maxCh_idy, max2Ch, max2Ch_idx, max2Ch_idy, x_span, y_span, area = analyze(np.array(cur_event), threshold)
-                maxCharge.append(maxCh)
-                maxCharge_idx.append(maxCh_idx)
-                maxCharge_idy.append(maxCh_idy)
-                max2Charge.append(max2Ch)
-                max2Charge_idx.append(max2Ch_idx)
-                max2Charge_idy.append(max2Ch_idy)
+                counter += 1
+                sumCh, x_span, y_span, area = analyze(np.array(cur_event), threshold)
+                sumCharge.append(sumCh)
                 xSpan.append(x_span)
                 ySpan.append(y_span)
                 Area.append(area)
@@ -144,6 +131,10 @@ def parse_file(filein, threshold):
         if b_getclusterinfo:
                 cluster_truth.append(line.strip().split())
                 b_getclusterinfo = False
+        if "<time slice 4000" in line:
+            cur_event = []
+            b_geteventinfo = True
+            continue
         if b_geteventinfo == True:
                 cur_event.append([float(i) for i in line.strip().split()])
 
@@ -152,15 +143,72 @@ def parse_file(filein, threshold):
         events.append(np.array(cur_event))
     # Convert list of arrays to a 3D numpy array
     events = np.array(events)
-    return (events, maxCharge, maxCharge_idx, maxCharge_idy, max2Charge, max2Charge_idx, max2Charge_idy, xSpan, ySpan, Area)
+    return (events, cluster_truth, sumCharge, xSpan, ySpan, Area)
+
+def delta_histograms(arr1, arr2, name, unit):
+    delta = np.array(arr1) - np.array(arr2)
+    canvas = ROOT.TCanvas("cv","cv",1000,800)
+    hist_tmp = ROOT.TH1F(name, "Hist", 40, -20, 20)
+    for iter in range(len(delta)):
+        hist_tmp.Fill(delta[iter])
+    myMean = hist_tmp.GetMean()
+    myRMS = hist_tmp.GetRMS()
+    hist_tmp.Draw("hist")
+    ROOT.gStyle.SetOptStat(1);
+    hist_tmp.GetXaxis().SetTitle("Delta "+name+" ["+unit+"]")
+    hist_tmp.GetYaxis().SetTitle("Counts")
+    canvas.SaveAs("./delta_"+name+"_hist.png")
+    canvas.Clear()
+
+def single_histogram(arr, name, unit, doFit=False, iter=1):
+    canvas = ROOT.TCanvas(f"cv_{iter}", f"cv_{iter}",1000,800)
+    hist_tmp = ROOT.TH1F(f'{name}', "Hist", 100, np.amin(arr), np.amax(arr))
+    if(doFit):
+        hist_tmp = ROOT.TH1F(f'{name}', "Hist", 100, 0, 100000)
+    for value in arr:
+        hist_tmp.Fill(value)
+    myMean = hist_tmp.GetMean()
+    myRMS = hist_tmp.GetRMS()
+    hist_tmp.SetLineColor(1)
+    hist_tmp.Draw("hist")
+    if doFit:
+        print("Setting up Langaus")
+        fit = langaus.LanGausFit()
+        print("Setup Langaus")
+        myLanGausFunction = fit.fit(hist_tmp, fitrange=(3000,40000))
+        myLanGausFunction.SetLineColor(1)
+        myLanGausFunction.Draw("same")
+    ROOT.gStyle.SetOptStat(1)
+    ROOT.gStyle.SetOptFit(1111)
+    hist_tmp.GetXaxis().SetTitle(name+" ["+unit+"]")
+    hist_tmp.GetYaxis().SetTitle("Counts")
+    canvas.SaveAs("./"+name+"_hist.png")
+    canvas.Clear()
+
 
 def main():
 
-    (arr_events, maxCharge, maxCharge_idx, maxCharge_idy, max2Charge, max2Charge_idx, max2Charge_idy, xSpan, ySpan, Area) = parse_file(filein="../Runs/"+filename+".out", threshold=10)
+    (arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area) = parse_file(filein="../Runs/"+filename+".out", threshold=10)
     print("Done analyzing dataset 1.")
-    (arr_events2, maxCharge2, maxCharge_idx2, maxCharge_idy2, max2Charge2, max2Charge_idx2, max2Charge_idy2, xSpan2, ySpan2, Area2) = parse_file(filein="../Runs/"+filename2+".out", threshold=10)
+    (arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2) = parse_file(filein="../Runs/"+filename2+".out", threshold=10)
     print("Done analyzing dataset 2.")
 
+    cluster_truth = cluster_truth[:-1]
+    cluster_truth2 = cluster_truth2[:-1]
+
+    (arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2) = remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2)
+
+    # if(len(cluster_truth)-len(cluster_truth2) != 0):
+    #     for iter in range(len(cluster_truth)):
+    #         if(cluster_truth[iter][3] != cluster_truth2[iter][3]):
+    #             print("\n Event ",iter," doesn't match: ",cluster_truth[iter][3],"\n")
+    #         if(cluster_truth[iter][4] != cluster_truth2[iter][4]):
+    #             print("\n Event ",iter," doesn't match: ",cluster_truth[iter][4],"\n")
+    #         if(cluster_truth[iter][5] != cluster_truth2[iter][5]):
+    #             print("\n Event ",iter," doesn't match: ",cluster_truth[iter][5],"\n")
+    # else:
+    #     print("\nLength of both datasets are not the same!!\n")
+    
     print("The shape of the event array 1: ", arr_events[0].shape)
     print("The ndim of the event array 1: ", len(arr_events))
     print("The max value in the array 1 is: ", np.amax(arr_events))
@@ -185,10 +233,10 @@ def main():
     for i in range (len(delta_hists1)):
         delta_histograms(delta_hists1[i], delta_hists2[i], delta_hist_names[i], delta_hist_units[i])
 
-    single_hists1 = [maxCharge, max2Charge, xSpan, ySpan, Area, maxCharge2, max2Charge2, xSpan2, ySpan2, Area2]
-    single_hist_names = ['maxCharge', 'max2Charge', 'xSpan', 'ySpan','Area', 'maxCharge2', 'max2Charge2', 'xSpan2', 'ySpan2', 'Area2']
-    single_hist_doFit= [True, True, False, False, False, True, True, False, False, False]
-    single_hist_units = ['e', 'e', 'pixel', 'pixel', 'pixel^2', 'e', 'e', 'pixel', 'pixel', 'pixel^2']
+    single_hists1 = [sumCharge, xSpan, ySpan, Area, sumCharge2, xSpan2, ySpan2, Area2]
+    single_hist_names = ['sumCharge', 'xSpan', 'ySpan','Area', 'sumCharge2', 'xSpan2', 'ySpan2', 'Area2']
+    single_hist_doFit= [True, False, False, False, True, False, False, False]
+    single_hist_units = ['e', 'pixel', 'pixel', 'pixel', 'e', 'pixel', 'pixel', 'pixel']
     for i in range (len(single_hists1)):
         single_histogram(single_hists1[i], single_hist_names[i], single_hist_units[i], single_hist_doFit[i], i)
     
