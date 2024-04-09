@@ -23,7 +23,7 @@ def analyze(event, threshold):
     area = count_above_threshold(event, threshold)
     return sumCh, x_span, y_span, area
 
-def remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2):
+def remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, theta_angle, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2, theta_angle2):
     # Convert all inputs to NumPy arrays
     arr_events = np.array(arr_events)
     cluster_truth = np.array(cluster_truth)
@@ -31,12 +31,14 @@ def remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Ar
     xSpan = np.array(xSpan)
     ySpan = np.array(ySpan)
     Area = np.array(Area)
+    theta_angle = np.array(theta_angle)
     arr_events2 = np.array(arr_events2)
     cluster_truth2 = np.array(cluster_truth2)
     sumCharge2 = np.array(sumCharge2)
     xSpan2 = np.array(xSpan2)
     ySpan2 = np.array(ySpan2)
     Area2 = np.array(Area2)
+    theta_angle2 = np.array(theta_angle2)
 
     # Build KD-trees for both arrays
     tree1 = KDTree(cluster_truth[:, 3:6].astype(float))
@@ -56,6 +58,7 @@ def remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Ar
     tmp_xSpan = xSpan[common_indices_array1]
     tmp_ySpan = ySpan[common_indices_array1]
     tmp_Area = Area[common_indices_array1]
+    tmp_theta_angle = theta_angle[common_indices_array1]
     
     tmp_arr_events2 = arr_events2[common_indices_array2]
     tmp_cluster_truth2 = cluster_truth2[common_indices_array2]
@@ -63,8 +66,9 @@ def remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Ar
     tmp_xSpan2 = xSpan2[common_indices_array2]
     tmp_ySpan2 = ySpan2[common_indices_array2]
     tmp_Area2 = Area2[common_indices_array2]
+    tmp_theta_angle2 = theta_angle2[common_indices_array2]
 
-    return (tmp_arr_events, tmp_cluster_truth, tmp_sumCharge, tmp_xSpan, tmp_ySpan, tmp_Area, tmp_arr_events2, tmp_cluster_truth2, tmp_sumCharge2, tmp_xSpan2, tmp_ySpan2, tmp_Area2)
+    return (tmp_arr_events, tmp_cluster_truth, tmp_sumCharge, tmp_xSpan, tmp_ySpan, tmp_Area, tmp_theta_angle, tmp_arr_events2, tmp_cluster_truth2, tmp_sumCharge2, tmp_xSpan2, tmp_ySpan2, tmp_Area2, tmp_theta_angle2)
 
 
 def count_above_threshold(arr, threshold):
@@ -81,6 +85,14 @@ def find_span(arr, threshold):
     y_span = y_max - y_min + 1
     # print("x, y span = ",x_span, ", ", y_span)
     return x_span, y_span
+
+def find_angle(arr):
+    z = arr[2]
+    length = np.linalg.norm(arr)
+    cos_theta = z / length
+    theta = np.arccos(cos_theta)
+    theta_degrees = 180 - np.degrees(theta)
+    return theta_degrees
 
 def find_second_max(arr):
     # Flatten the array and find the second maximum value
@@ -107,6 +119,7 @@ def parse_file(filein, threshold):
     xSpan = []
     ySpan = []
     Area = []
+    theta_angle = []
     cur_event = []
     cluster_truth = []
     b_geteventinfo = False
@@ -141,9 +154,18 @@ def parse_file(filein, threshold):
     # Handle the last event
     if cur_event:
         events.append(np.array(cur_event))
+        sumCh, x_span, y_span, area = analyze(np.array(cur_event), threshold)
+        sumCharge.append(sumCh)
+        xSpan.append(x_span)
+        ySpan.append(y_span)
+        Area.append(area)
     # Convert list of arrays to a 3D numpy array
     events = np.array(events)
-    return (events, cluster_truth, sumCharge, xSpan, ySpan, Area)
+    cluster_truth = np.array(cluster_truth)
+    for iter in range(len(cluster_truth)):
+        theta_angle.append(find_angle(cluster_truth[iter, 3:6].astype(float)))
+    print("events len = ",len(events), ", area len = ", len(Area), ", cluster truth len = ", len(cluster_truth))
+    return (events, cluster_truth, sumCharge, xSpan, ySpan, Area, theta_angle)
 
 def delta_histograms(arr1, arr2, name, unit):
     delta = np.array(arr1) - np.array(arr2)
@@ -188,14 +210,14 @@ def single_histogram(arr, arr2, name, unit, maxbin, nbins, doFit=False, iter=1):
     # Create text boxes to display statistics for each histogram
     stats1 = ROOT.TPaveText(0.7, 0.7, 0.9, 0.9, "NDC")
     stats1.AddText(f"Name: Silvaco")
-    stats1.AddText(f"Mean: {hist_tmp1.GetMean():.2f} ± {hist_tmp1.GetMeanError():.2f}")
-    stats1.AddText(f"Std Dev: {hist_tmp1.GetStdDev():.2f} ± {hist_tmp1.GetStdDevError():.2f}")
+    stats1.AddText(f"Mean: {hist_tmp1.GetMean():.2f} +/- {hist_tmp1.GetMeanError():.2f}")
+    stats1.AddText(f"Std Dev: {hist_tmp1.GetStdDev():.2f} +/- {hist_tmp1.GetStdDevError():.2f}")
     stats1.Draw()
 
     stats2 = ROOT.TPaveText(0.7, 0.5, 0.9, 0.7, "NDC")
     stats2.AddText(f"Name: DF-ISE")
-    stats2.AddText(f"Mean: {hist_tmp2.GetMean():.2f} ± {hist_tmp2.GetMeanError():.2f}")
-    stats2.AddText(f"Std Dev: {hist_tmp2.GetStdDev():.2f} ± {hist_tmp2.GetStdDevError():.2f}")
+    stats2.AddText(f"Mean: {hist_tmp2.GetMean():.2f} +/- {hist_tmp2.GetMeanError():.2f}")
+    stats2.AddText(f"Std Dev: {hist_tmp2.GetStdDev():.2f} +/- {hist_tmp2.GetStdDevError():.2f}")
     stats2.Draw()
     # Create a legend
     legend = ROOT.TLegend(0.5,0.6,0.7,0.8)
@@ -208,26 +230,14 @@ def single_histogram(arr, arr2, name, unit, maxbin, nbins, doFit=False, iter=1):
 
 def main():
 
-    (arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area) = parse_file(filein="../Runs/"+filename+".out", threshold=10)
+    (arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, theta_angle) = parse_file(filein="../Runs/"+filename+".out", threshold=10)
     print("Done analyzing dataset 1.")
-    (arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2) = parse_file(filein="../Runs/"+filename2+".out", threshold=10)
+    print(cluster_truth[-1], Area[-1])
+    (arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2, theta_angle2) = parse_file(filein="../Runs/"+filename2+".out", threshold=10)
     print("Done analyzing dataset 2.")
 
-    cluster_truth = cluster_truth[:-1]
-    cluster_truth2 = cluster_truth2[:-1]
 
-    (arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2) = remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2)
-
-    # if(len(cluster_truth)-len(cluster_truth2) != 0):
-    #     for iter in range(len(cluster_truth)):
-    #         if(cluster_truth[iter][3] != cluster_truth2[iter][3]):
-    #             print("\n Event ",iter," doesn't match: ",cluster_truth[iter][3],"\n")
-    #         if(cluster_truth[iter][4] != cluster_truth2[iter][4]):
-    #             print("\n Event ",iter," doesn't match: ",cluster_truth[iter][4],"\n")
-    #         if(cluster_truth[iter][5] != cluster_truth2[iter][5]):
-    #             print("\n Event ",iter," doesn't match: ",cluster_truth[iter][5],"\n")
-    # else:
-    #     print("\nLength of both datasets are not the same!!\n")
+    (arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, theta_angle, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2, theta_angle2) = remove_unmatched_evts(arr_events, cluster_truth, sumCharge, xSpan, ySpan, Area, theta_angle, arr_events2, cluster_truth2, sumCharge2, xSpan2, ySpan2, Area2, theta_angle2)
     
     print("The shape of the event array 1: ", arr_events[0].shape)
     print("The ndim of the event array 1: ", len(arr_events))
@@ -241,11 +251,37 @@ def main():
         print("\n\n\t WARNING WARNING WARNING")
         print("\n\nThe two datasets have different number of events. This will lead to incorrect comparison.\n\n")
 
-    # delta_histograms
-    # delta_hists1 = [maxCharge_idx, maxCharge_idy, max2Charge_idx, max2Charge_idy]
-    # delta_hists2 = [maxCharge_idx2, maxCharge_idy2, max2Charge_idx2, max2Charge_idy2]
-    # delta_hist_names = ['maxCharge_idx', 'maxCharge_idy', 'max2Charge_idx', 'max2Charge_idy']
-    # delta_hist_units = ['pixel', 'pixel', 'pixel', 'pixel']
+    fig, axs = plt.subplots(2)
+    # Scatter plot of Area vs theta_angle
+    axs[0].scatter(theta_angle, Area, color='red', s=10, alpha=0.3, label='Silvaco')
+    axs[0].set_xlabel('Theta (angle w.r.t. Z-axis) [deg.]')
+    axs[0].set_ylabel('Cluster size [pixel]')
+    axs[0].set_title('Silvaco: Cluster size vs Theta')
+    axs[0].legend()
+    axs[0].grid(True)
+    axs[0].set_xticks(np.arange(0, 91, 10))  # Set x-axis ticks    
+    # Scatter plot of Area2 vs theta_angle2
+    axs[1].scatter(theta_angle2, Area2, color='black', s=10, alpha=0.3, label='DF-ISE')
+    axs[1].set_xlabel('Theta (angle w.r.t. Z-axis) [deg.]')
+    axs[1].set_ylabel('Cluster size [pixel]')
+    axs[1].set_title('DF-ISE: Cluster size vs Theta')
+    axs[1].legend()
+    axs[1].grid(True)
+    axs[1].set_xticks(np.arange(0, 91, 10))  # Set x-axis ticks  
+    plt.tight_layout()
+    plt.savefig('./clusterSize_vs_theta_plot.png')
+
+    plt.figure()
+    # Scatter plot of Area vs theta_angle
+    plt.scatter(theta_angle, Area - Area2, color='red', s=10, alpha=0.3, label='Silvaco - DF-ISE')
+    plt.xlabel('Theta (angle w.r.t. Z-axis) [deg.]')
+    plt.ylabel('Cluster size [pixel]')
+    plt.title('Cluster size vs Theta')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('./deltaClusterSize_vs_theta_plot.png')
+
+
     delta_hists1 = [xSpan, ySpan]
     delta_hists2 = [xSpan2, ySpan2]
     delta_hist_names = ['xSpan', 'ySpan']
