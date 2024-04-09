@@ -148,43 +148,63 @@ def parse_file(filein, threshold):
 def delta_histograms(arr1, arr2, name, unit):
     delta = np.array(arr1) - np.array(arr2)
     canvas = ROOT.TCanvas("cv","cv",1000,800)
-    hist_tmp = ROOT.TH1F(name, "Hist", 40, -20, 20)
+    hist_tmp = ROOT.TH1F(name, 'delta '+f'{name}', 20, -10, 10)
     for iter in range(len(delta)):
         hist_tmp.Fill(delta[iter])
     myMean = hist_tmp.GetMean()
     myRMS = hist_tmp.GetRMS()
     hist_tmp.Draw("hist")
-    ROOT.gStyle.SetOptStat(1);
+    ROOT.gStyle.SetOptStat(1)
+    hist_tmp.SetTitle(name)
+    hist_tmp.GetYaxis().SetTitleSize(0.03)
+    hist_tmp.GetYaxis().SetLabelSize(0.03)
     hist_tmp.GetXaxis().SetTitle("Delta "+name+" ["+unit+"]")
     hist_tmp.GetYaxis().SetTitle("Counts")
     canvas.SaveAs("./delta_"+name+"_hist.png")
     canvas.Clear()
 
-def single_histogram(arr, name, unit, doFit=False, iter=1):
+def single_histogram(arr, arr2, name, unit, maxbin, nbins, doFit=False, iter=1):
     canvas = ROOT.TCanvas(f"cv_{iter}", f"cv_{iter}",1000,800)
-    hist_tmp = ROOT.TH1F(f'{name}', "Hist", 100, np.amin(arr), np.amax(arr))
-    if(doFit):
-        hist_tmp = ROOT.TH1F(f'{name}', "Hist", 100, 0, 100000)
+    # Create and fill the first histogram
+    hist_tmp1 = ROOT.TH1F(f'{name}_1', f'{name}', nbins, 0, maxbin)
     for value in arr:
-        hist_tmp.Fill(value)
-    myMean = hist_tmp.GetMean()
-    myRMS = hist_tmp.GetRMS()
-    hist_tmp.SetLineColor(1)
-    hist_tmp.Draw("hist")
-    if doFit:
-        print("Setting up Langaus")
-        fit = langaus.LanGausFit()
-        print("Setup Langaus")
-        myLanGausFunction = fit.fit(hist_tmp, fitrange=(3000,40000))
-        myLanGausFunction.SetLineColor(1)
-        myLanGausFunction.Draw("same")
-    ROOT.gStyle.SetOptStat(1)
-    ROOT.gStyle.SetOptFit(1111)
-    hist_tmp.GetXaxis().SetTitle(name+" ["+unit+"]")
-    hist_tmp.GetYaxis().SetTitle("Counts")
+        hist_tmp1.Fill(value)
+
+    # Create and fill the second histogram
+    hist_tmp2 = ROOT.TH1F(f'{name}_2', f'{name}', nbins, 0, maxbin)
+    for value in arr2:
+        hist_tmp2.Fill(value)
+
+    ROOT.gStyle.SetOptStat(0)  # Turn off automatic stats box
+    hist_tmp1.GetXaxis().SetTitle(name+" ["+unit+"]")
+    hist_tmp1.GetYaxis().SetTitle("Counts")
+    hist_tmp1.SetLineColor(2)
+    hist_tmp2.SetLineColor(1)
+    hist_tmp1.Draw("hist")
+    hist_tmp2.Draw("hist same")  # Draw the second histogram on the same canvas
+    hist_tmp2.GetYaxis().SetTitleSize(0.03)
+    hist_tmp2.GetYaxis().SetLabelSize(0.03)
+
+    # Create text boxes to display statistics for each histogram
+    stats1 = ROOT.TPaveText(0.7, 0.7, 0.9, 0.9, "NDC")
+    stats1.AddText(f"Name: Silvaco")
+    stats1.AddText(f"Mean: {hist_tmp1.GetMean():.2f} ± {hist_tmp1.GetMeanError():.2f}")
+    stats1.AddText(f"Std Dev: {hist_tmp1.GetStdDev():.2f} ± {hist_tmp1.GetStdDevError():.2f}")
+    stats1.Draw()
+
+    stats2 = ROOT.TPaveText(0.7, 0.5, 0.9, 0.7, "NDC")
+    stats2.AddText(f"Name: DF-ISE")
+    stats2.AddText(f"Mean: {hist_tmp2.GetMean():.2f} ± {hist_tmp2.GetMeanError():.2f}")
+    stats2.AddText(f"Std Dev: {hist_tmp2.GetStdDev():.2f} ± {hist_tmp2.GetStdDevError():.2f}")
+    stats2.Draw()
+    # Create a legend
+    legend = ROOT.TLegend(0.5,0.6,0.7,0.8)
+    legend.AddEntry(hist_tmp1,"Silvaco","l")
+    legend.AddEntry(hist_tmp2,"DF-ISE","l")
+    legend.Draw()
+
     canvas.SaveAs("./"+name+"_hist.png")
     canvas.Clear()
-
 
 def main():
 
@@ -233,12 +253,16 @@ def main():
     for i in range (len(delta_hists1)):
         delta_histograms(delta_hists1[i], delta_hists2[i], delta_hist_names[i], delta_hist_units[i])
 
-    single_hists1 = [sumCharge, xSpan, ySpan, Area, sumCharge2, xSpan2, ySpan2, Area2]
+    single_hists1 = [sumCharge, xSpan, ySpan, Area]
+    single_hists2 = [sumCharge2, xSpan2, ySpan2, Area2]
     single_hist_names = ['sumCharge', 'xSpan', 'ySpan','Area', 'sumCharge2', 'xSpan2', 'ySpan2', 'Area2']
     single_hist_doFit= [True, False, False, False, True, False, False, False]
     single_hist_units = ['e', 'pixel', 'pixel', 'pixel', 'e', 'pixel', 'pixel', 'pixel']
+    single_hist_maxbin = [120000, 20, 20, 40]
+    single_hist_nbins = [100, 20, 20, 40]
     for i in range (len(single_hists1)):
-        single_histogram(single_hists1[i], single_hist_names[i], single_hist_units[i], single_hist_doFit[i], i)
+        single_histogram(single_hists1[i], single_hists2[i], single_hist_names[i], single_hist_units[i], single_hist_maxbin[i], single_hist_nbins[i], single_hist_doFit[i], i)
+        # order in which arrays are passed, matters. First histograms are for silvaco, and second for df-ise
     
 
 if __name__ == "__main__":
