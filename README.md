@@ -4,3 +4,5 @@ PixelAV perfroms simulations of silicon sensors: specifically the induced charge
 Silvaco TCAD simulation -> Parsers (exports silvaco data and converts to a format readable by interpolation codes) -> Interpolation + Alteration (converts to a format required by PixelAV) -> PixelAV simulation.
 
 Additionally inorder to validate the simulation results from the Silvaco+PixelAV framework, a comparison of results from Silvaco+PixelAV with DF-ISE involving the same sensor structure and simulations, needs to be done. validationPlots.py is the python file that does this validation.
+
+The file track_gen.py simulates a list of tracks of charged particles that originate from or near the beam pipe and ones that hit the sensor module. While the code is still in a preliminary stage, the goal is to create a list of tracks with uniform pT and inform hit location (X, Y) (sensor module plane) coordinates on the sensor module.
