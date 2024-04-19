@@ -1,3 +1,6 @@
+# Author: Danush Shekar, April 16, 2024
+# Acknowledgement(s): Mohammad Abrar Wadud
+
 import matplotlib.pyplot as plt
 import random
 import numpy as np
