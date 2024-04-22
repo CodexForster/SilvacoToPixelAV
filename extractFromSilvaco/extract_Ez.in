@@ -1,0 +1,5 @@
+set z = 0
+assign name = file_name c.val="map2Dz_$'z'"
+extract init inf="${file_name}.str"
+extract 2d.conc.file material="Silicon" impurity="E Field Z" outfile="$'file_name'_EFieldZ.dat"
+
