@@ -1,0 +1,5 @@
+go internal
+load infile=extract_Ey.in
+log outfile=extract_Ey_z
+sweep parameter = z type = linear range=0,63,64
+quit
