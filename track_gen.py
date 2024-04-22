@@ -2,6 +2,7 @@
 # Acknowledgement(s): Mohammad Abrar Wadud, Farhan Abid
 
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import random
 import numpy as np
 import math
@@ -36,10 +37,10 @@ def generate_init_info():
     return np.array([x_coords, y_coords, z_coords, pt, phi, pz, charge])
 
 def sensor_hit_tracks(num_particles):
-    initial_track = generate_init_info()
     track_list = []
     counter = 0
     while (counter <= num_particles):
+        initial_track = generate_init_info()
         # the beginning of track is at or around the beam pipe (2mm along x and y, and 20mm along z)
         temp = track_propagate(initial_track)
         if(temp[0]>0):
@@ -53,6 +54,39 @@ def sensor_hit_tracks(num_particles):
             if(counter%100==0 and counter!=0):
                 print("Gen status = ", counter)
     return np.array(track_list)
+
+def plot_traj(iter):
+    vector = generate_init_info()
+    # the beginning of track is at or around the beam pipe (2mm along x and y, and 20mm along z)
+    x_init = vector[0]
+    y_init = vector[1]
+    z_init = vector[2]
+    x_track = []
+    y_track = []
+    z_track = []
+    pt = vector[3]
+    Phi0 = vector[4]
+    pz = vector[5]
+    charge = vector[6]
+    R = pt / (0.3 * B_FIELD)
+    p = np.sqrt(pt**2 + pz**2)
+    Lambda = np.arcsin(pz/p)
+    h = -1#math.copysign(1, charge*B_FIELD)
+    for s in np.arange(0, 2*math.pi*R, mm_to_metre(0.4)):
+        x, y, z = particle_trajectory(s, x_init, y_init, z_init, R, Phi0, h, Lambda)
+        x_track.append(metre_to_mm(x))
+        y_track.append(metre_to_mm(y))
+        z_track.append(metre_to_mm(z))
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot(x_track, y_track, z_track)
+    ax.set_xlabel('X [mm]')
+    ax.set_ylabel('Y [mm]')
+    ax.set_zlabel('Z [mm]')
+    ax.view_init(azim=90)
+    ax.view_init(elev=-45)
+    plt.show()
+    # plt.savefig('track'+str(iter)+'.png')
 
 def track_propagate(vector):
     # Ref: https://cds.cern.ch/record/2308020/files/CERN-THESIS-2017-328.pdf
@@ -103,6 +137,13 @@ def plot(list1, list2, name, save_name):
     plt.ylabel('Frequency')
     plt.tight_layout()
     plt.savefig('hist'+save_name+'.png')
+
+# Plot sample tracks
+plot_traj(1)
+plot_traj(2)
+plot_traj(3)
+plot_traj(4)
+plot_traj(5)
 
 # Generate particle tracks
 num_particles = 1000  # Adjust the number of particles as needed
