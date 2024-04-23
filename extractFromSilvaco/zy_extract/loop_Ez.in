@@ -1,0 +1,5 @@
+go internal
+load infile=extract_Ez.in
+log outfile=extract_Ez_x
+sweep parameter = x type = linear range=0,50,51
+quit

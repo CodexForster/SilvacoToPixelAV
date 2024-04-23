@@ -1,0 +1,5 @@
+go internal
+load infile=extract_Ey.in
+log outfile=extract_Ey_x
+sweep parameter = x type = linear range=0,50,51
+quit
