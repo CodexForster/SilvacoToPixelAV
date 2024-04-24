@@ -94,6 +94,7 @@ def plot_traj(iter):
 
 def track_propagate(vector):
     # Ref: https://cds.cern.ch/record/2308020/files/CERN-THESIS-2017-328.pdf
+    #.   : https://cds.cern.ch/record/251912/files/cer-000168391.pdf
     x_init = vector[0]
     y_init = vector[1]
     z_init = vector[2]
@@ -142,21 +143,24 @@ def particle_trajectory(s, x0, y0, z0, R, Phi0, h, Lambda):
     return (x,y,z)
 
 
-def plot(list1, list2, name, save_name):
+def plot(list1, list2, name, save_name, units):
     # Find and print the maximum and minimum values in each column
     print(f'New list: min = {min(list1)}, max = {max(list1)}')
     print(f'Old list: min = {min(list2)}, max = {max(list2)}')
     # Create histograms of the values
     plt.figure(figsize=(10, 4))
     plt.subplot(1, 2, 1)
-    plt.hist(list1, bins=100, edgecolor='black')
+    if("cotAlpha" in save_name):
+        plt.hist(list1, bins=100, range=(-0.6, 0.6), edgecolor='black')
+    else:
+        plt.hist(list1, bins=100, edgecolor='black')
     plt.title('Distribution of '+name)
-    plt.xlabel('Value [mm]')
+    plt.xlabel('Value ['+units+']')
     plt.ylabel('Frequency')
     plt.subplot(1, 2, 2)
     plt.hist(list2, bins=100, edgecolor='black')
     plt.title('Distribution of '+name)
-    plt.xlabel('Value [mm]')
+    plt.xlabel('Value ['+units+']')
     plt.ylabel('Frequency')
     plt.tight_layout()
     plt.savefig('hist'+save_name+'.png')
@@ -169,14 +173,14 @@ def plot(list1, list2, name, save_name):
 # plot_traj(5)
 
 # Generate particle tracks
-num_particles = 100000  # Adjust the number of particles as needed
-tracks = sensor_hit_tracks(num_particles)
+# num_particles = 100000  # Adjust the number of particles as needed
+# tracks = sensor_hit_tracks(num_particles)
 
-# Save the hit positions, momentum, and pT to a file or use them for further analysis
-print("================")
-print("Track generation is complete.\nNumber of tracks generated: ", len(tracks))
-print("================")
-np.savetxt("new_track_list.txt", tracks, delimiter=' ', header='cota, cotb, p, flp, localx, localy, pT')
+# # Save the hit positions, momentum, and pT to a file or use them for further analysis
+# print("================")
+# print("Track generation is complete.\nNumber of tracks generated: ", len(tracks))
+# print("================")
+# np.savetxt("new_track_list.txt", tracks, delimiter=' ', header='cota, cotb, p, flp, localx, localy, pT')
 
 # Read the data from the file, skipping lines that start with '#'
 with open('track_list_L1_025GeV.txt', 'r') as f:
@@ -187,6 +191,7 @@ with open('new_track_list.txt', 'r') as f2:
 
 values = ['cotAlpha', 'cotBeta', 'P [GeV/c]', 'Local X [mm]', 'Local Y [mm]', 'Pt [GeV/c]']
 save_name = ['cotAlpha', 'cotBeta', 'P_values', 'Local_X_coord', 'Local_Y_coord', 'Pt_values']
+units = ['', '', 'GeV/c', 'mm', 'mm', 'GeV/c']
 qty1, qty2 = [], []
 qty1.append([float(line.split()[0]) for line in lines2]) #cotAlpha
 qty1.append([float(line.split()[1]) for line in lines2]) #cotBeta
@@ -204,4 +209,4 @@ qty2.append([float(line.split()[5]) for line in lines]) #Local Y
 qty2.append([float(line.split()[6]) for line in lines]) #Pt
 
 for iter in range(len(values)):
-    plot(qty1[iter], qty2[iter], values[iter], save_name[iter])
+    plot(qty1[iter], qty2[iter], values[iter], save_name[iter], units[iter])
