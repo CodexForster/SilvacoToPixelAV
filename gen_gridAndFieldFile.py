@@ -2,6 +2,28 @@ import csv
 from scipy.spatial import KDTree
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import optparse
+
+parser = optparse.OptionParser("usage: %prog [options]\n")
+parser.add_option('-p', '--prodname', dest='prodname', help="The name of sensor production")
+options, args = parser.parse_args()
+
+foldername = options.prodname
+
+# specify your path
+path = "../"+foldername+"/"
+if not os.path.isdir(path):
+    # create directory if it does not exist
+    os.makedirs(path)
+
+plotpath = path+"Plots/"
+if not os.path.isdir(plotpath):
+    os.makedirs(plotpath)
+
+# specify the full path to the file)
+fieldfile = os.path.join(path, foldername+'_100_des.dat')
+meshfile = os.path.join(path, foldername+'_msh.grd')
 
 x_tolerance = 0.2
 y_tolerance = 0.0005
@@ -16,7 +38,7 @@ def plot_hist(arr, title, Bins, LOGY=False, LOGX=False):
     if(LOGX):
         plt.xscale('log')
     plt.title('Histogram of ' + title + ' values')
-    plt.savefig(title+'_hist.png')
+    plt.savefig(plotpath+title+'_hist.png')
     plt.close()
 
 def plot_scatter(arr1, arr2, title1, title2, LOGY=False):
@@ -26,7 +48,7 @@ def plot_scatter(arr1, arr2, title1, title2, LOGY=False):
     plt.xlabel(title1)
     plt.ylabel(title2)
     plt.title('Plot of '+title1+' vs '+title2)
-    plt.savefig(title1+'vs'+title2+'_scatter.png')
+    plt.savefig(plotpath+title1+'vs'+title2+'_scatter.png')
     plt.close()
 
 def read_data(filename):
@@ -66,6 +88,7 @@ def compare_coordinates(coords1, coords2, data1, data2):
             print(f'({x1}, {y1}, {z1}, {data1[index]}, {closest_point[0]}, {closest_point[1]}, {closest_point[2]}, {data2[idx]})')
 
 def merge_data(coords1, coords2, data1, data2):
+    npoints = 0
     # Defining histograms for data quality monitoring
     hist_x = []
     hist_y = []
@@ -82,7 +105,8 @@ def merge_data(coords1, coords2, data1, data2):
     delta_data_Z = []
     # Build KD-tree from the points
     kdtree = KDTree(coords2)
-    with open('combined_data.txt', 'w') as combined_file, open('silvaco.grd', 'w') as grd_file, open('silvaco.dat', 'w') as dat_file:
+    # Generate combined dataset in accordance to AllPix2 input format
+    with open(path+'silvacoCombinedOutput.txt', 'w') as combined_file, open(path+'silvacoMergedOutput.grd', 'w') as grd_file, open(path+'silvacoMergedOutput.dat', 'w') as dat_file:
         for index, (x1, y1, z1) in enumerate(coords1):
             tmp = np.array([x1, y1, z1])
             # Query the KD-tree for the closest point to the user-defined coordinate
@@ -100,10 +124,12 @@ def merge_data(coords1, coords2, data1, data2):
                 delta_y.append(y1 - closest_point[1])
                 delta_z.append(z1 - closest_point[2])
                 delta_data.append(ey1 - ey2)
-                # Write into .txt files (both combined, and .grd+.dat file for Allpix input for interpolation)
-                combined_file.write(f"{x1}, {y1}, {z1}, {ex1}, {ey1}, {ez2}\n")
-                grd_file.write(f"{x1} {y1} {z1}\n")
-                dat_file.write(f"{ex1} {ey1} {ez2}\n")
+                # Write into .txt files (both combined, and .grd+.dat file for Allpix2 input for interpolation)
+                # Swap X and Y coordinates and components to match Morris' coordinate
+                combined_file.write(f"{y1}, {x1}, {z1}, {ey1}, {ex1}, {ez2}\n")
+                npoints += 1
+                grd_file.write(f"{y1} {x1} {z1}\n")
+                dat_file.write(f"{ey1} {ex1} {ez2}\n")
                 # Saving some quantities for data-quality monitoring
                 if((abs(x1 - closest_point[0]) >= 0) and (abs(x1 - closest_point[0]) <= x_tolerance)):
                     delta_x2.append(x1 - closest_point[0])
@@ -125,9 +151,86 @@ def merge_data(coords1, coords2, data1, data2):
     plot_scatter(delta_x2, delta_data_X, 'DeltaX', 'Ey')
     plot_scatter(delta_y2, delta_data_Y, 'DeltaY', 'Ey')
     plot_scatter(delta_z2, delta_data_Z, 'DeltaZ', 'Ey')
+    return npoints
 
-file1 = 'EField_YX.txt'
-file2 = 'EField_YZ.txt'
+file1 = path+'EField_YX.txt'
+file2 = path+'EField_YZ.txt'
 (coord1, data1) = read_coordinates(file1)
 (coord2, data2) = read_coordinates(file2)
-merge_data(coord1, coord2, data1, data2)
+npts = merge_data(coord1, coord2, data1, data2)
+npts = int(npts)
+header_ef = f"""DF-ISE text
+
+Info {{
+  version = 1.0
+  type    = dataset
+  dimension   = 3
+  nb_vertices = {npts}
+  nb_edges    = 0
+  nb_faces    = 0
+  nb_elements = 0
+  nb_regions  = 3
+  datasets    = [ "ElectricField-Vector" ]
+  functions   = [ ElectricField ]
+}}
+
+Data {{
+
+  Dataset ("ElectricField-Vector") {{
+    function  = ElectricField
+    type      = vector
+    dimension = 3
+    location  = vertex
+    validity  = [ "substrate" ]
+    Values ({3*npts}) {{"""
+
+header_msh = f"""DF-ISE text
+
+Info {{
+  version     =  1
+  type        = grid
+  dimension   =  3
+  nb_vertices =  {npts}
+  nb_edges    =  0
+  nb_faces    =  0
+  nb_elements =  0
+  nb_regions  =  3
+  regions     = [ "substrate" "anode" "cathode" ]
+  materials   = [ Silicon Contact Contact ]
+}}
+
+Data {{
+  CoordSystem {{
+    translate = [  0  0  0 ]
+    transform = [  1  0  0  0  1  0  0  0  1 ]
+  }}
+  Vertices (  {npts}) {{"""
+
+with open(path+'silvacoMergedOutput.grd', 'r') as data_file:
+    data = data_file.readlines()
+
+with open(meshfile, 'w') as output_file:
+    output_file.write(header_msh)
+    output_file.write('\n')
+    for line in data:
+        values = line.split()
+        float_values = [str(float(value)) for value in values]
+        output_file.write(' ' + ' '.join(float_values) + '\n')
+    output_file.write('\n  }\n}\n')
+
+with open(path+'silvacoMergedOutput.dat', 'r') as data_file:
+    data = [value for line in data_file for value in line.split()]
+
+with open(fieldfile, 'w') as output_file:
+    output_file.write(header_ef)
+    output_file.write('\n ')
+    for i, value in enumerate(data, start=1):
+        value = float(value)
+        if value == -0.0:
+            value = 0.0
+        if i % 10 != 1:
+            output_file.write(' ')
+        output_file.write('{:.6e}'.format(value))
+        if i % 10 == 0:
+            output_file.write('\n ')
+    output_file.write('\n    }\n  }\n\n}\n')

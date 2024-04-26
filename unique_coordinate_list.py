@@ -1,4 +1,18 @@
 import csv
+import os
+import optparse
+
+parser = optparse.OptionParser("usage: %prog [options]\n")
+parser.add_option('-p', '--prodname', dest='prodname', help="The name of sensor production")
+options, args = parser.parse_args()
+
+foldername = options.prodname
+
+# specify your path
+path = "../"+foldername+"/"
+if not os.path.isdir(path):
+    # create directory if it does not exist
+    os.makedirs(path)
 
 def read_coordinates(filename):
     with open(filename, 'r') as f:
@@ -38,8 +52,8 @@ def unique_coordinates(filename, filetype):
 task = 2
 
 if (task==1):
-    file1 = 'EField_YX.txt'
-    file2 = 'EField_YZ.txt'
+    file1 = path+'EField_YX.txt'
+    file2 = path+'EField_YZ.txt'
     x_tolerance = 0.25
     y_tolerance = 0.001
     z_tolerance = 0.025
@@ -49,8 +63,8 @@ if (task==1):
     compare_coordinates(coords1, coords2, x_tolerance, y_tolerance, z_tolerance)
 
 elif (task==2):
-    file1 = 'EField_YX.txt'
-    file2 = 'combined_data.txt'
+    file1 = path+'EField_YX.txt'
+    file2 = path+'combined_data.txt'
     x_coords, y_coords, z_coords = unique_coordinates(file1, 'space')
 
     print("Unique X coordinates:", x_coords)
