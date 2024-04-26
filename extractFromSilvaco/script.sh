@@ -25,6 +25,10 @@ python3 create-3D-map.py --prefix map2Dx_ --suffix _EFieldZ.dat --outputname E_F
 # important to pass inputs in this order
 python merge_maps.py --output EField_YZ.txt --input E_FieldX.dat E_FieldY.dat E_FieldZ.dat
 
+# gen final efield & grid files from silvaco data
+# EField_YX.txt and EField_YZ.txt are generated from the prev steps and should be stored in prodname folder
+python3 gen_gridAndFieldFile.py --prodname silvaco50x13
+
 # ========================
 # WEIGHTING POTENTIAL GEN - FST
 # ========================
@@ -38,14 +42,10 @@ python3 create-3D-map.py --prefix map2Dz_ --suffix _Potential.dat --outputname E
 # ========================
 # export is optional
 export PATH=$PATH:/Users/danush/Documents/PixelAV/silvaco_datagen/recipes_c-ansi/lib/
-# gen efield
-# EField_YX.txt and EField_YZ.txt are generated from the prev steps and should be stored in prodname folder
-python3 gen_gridAndFieldFile.py --prodname silvaco50x13
 gcc gen_efield.c -o gen_efield -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/ -I ./recipes_c-ansi/recipes/ ./recipes_c-ansi/lib/librecipes_c.a -lm
 ./gen_efield silvaco50x13 100
 
 # example output for gen_efield
-
 # danush@danush silvaco_datagen % ./gen_efield silvaco50x13 100
 # Grid file = silvaco50x13/silvaco50x13_msh.grd, dessis plot file = silvaco50x13/silvaco50x13_100_des.dat
 # number of vertices = 47652
@@ -66,7 +66,6 @@ gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/
 ./gen_wpot silvaco50x13wgt 1
 
 # example output for gen_wpot
-
 # danush@danush silvaco_datagen % ./gen_wpot silvaco50x13wgt 1
 # Grid file = silvaco50x13wgt/silvaco50x13wgt_msh.grd, dessis plot file = silvaco50x13wgt/silvaco50x13wgt_1_des.dat
 # number of vertices = 15444
@@ -79,6 +78,13 @@ gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/
 # (nx, ny, nz) = (26, 13, 51)
 # enter the x y coordinates and tolerance for plot axis
 # 2 2 0.1
+
+# ========================
+# TRACK GENERATION - LOCAL
+# ========================
+source /opt/homebrew/bin/thisroot.sh 
+g++ -o genlist generate_cluster_inputs_low_pt.cxx `root-config --cflags --glibs`
+./genlist
 
 # ========================
 # PIXELAV DATA GEN - LPC
