@@ -1,4 +1,4 @@
-# Author: Danush Shekar, April 16, 2024
+# Author: Danush Shekar, UIC (April 16, 2024)
 # Acknowledgement(s): Mohammad Abrar Wadud
 
 import matplotlib.pyplot as plt

@@ -1,3 +1,6 @@
+# Original author: https://github.com/nhanvtran/directional-pixel-detectors/blob/main/datagen.py
+# Modified by:     Danush Shekar, UIC (25 April, 2024) 
+
 import sys
 import numpy as np
 import pandas as pd
