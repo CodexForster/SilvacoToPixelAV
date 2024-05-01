@@ -1,3 +1,4 @@
+# Acknowledgements: https://github.com/badeaa3/cmspix28-mc-sim/blob/main/launch.py
 # Description: Script to run PixelAV on multiple cores whilest taking care of splitting the track_list accordingly
 
 import subprocess
