@@ -1,4 +1,5 @@
 # Author: Danush Shekar, UIC (March 26, 2024)
+# Description: Combine the grid & W.Potential files generated from two perpendicular slices generated using create-3D-map.py
 
 import csv
 from scipy.spatial import KDTree

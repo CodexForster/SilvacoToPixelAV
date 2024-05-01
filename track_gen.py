@@ -1,5 +1,6 @@
 # Author: Danush Shekar, UIC (April 16, 2024)
 # Acknowledgement(s): Mohammad Abrar Wadud, Farhan Abid
+# Description: Generates tracks for PixelAV
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -158,7 +159,7 @@ def plot(list1, list2, name, save_name, units):
     plt.xlabel('Value ['+units+']')
     plt.ylabel('Frequency')
     plt.subplot(1, 2, 2)
-    plt.hist(list2, bins=100, edgecolor='black')
+    plt.hist(list2, bins=50, edgecolor='black')
     plt.title('Distribution of '+name)
     plt.xlabel('Value ['+units+']')
     plt.ylabel('Frequency')
@@ -183,10 +184,10 @@ def plot(list1, list2, name, save_name, units):
 # np.savetxt("new_track_list.txt", tracks, delimiter=' ', header='cota, cotb, p, flp, localx, localy, pT')
 
 # Read the data from the file, skipping lines that start with '#'
-with open('track_list_L1_025GeV.txt', 'r') as f:
+with open('track_list.txt', 'r') as f:
     lines = [line for line in f if not line.startswith('#')]
 # Read the data from the file, skipping lines that start with '#'
-with open('new_track_list.txt', 'r') as f2:
+with open('track_list.txt', 'r') as f2:
     lines2 = [line for line in f2 if not line.startswith('#')]
 
 values = ['cotAlpha', 'cotBeta', 'P [GeV/c]', 'Local X [mm]', 'Local Y [mm]', 'Pt [GeV/c]']
@@ -206,7 +207,7 @@ qty2.append([float(line.split()[1]) for line in lines]) #cotBeta
 qty2.append([float(line.split()[2]) for line in lines]) #P
 qty2.append([float(line.split()[4]) for line in lines]) #Local X
 qty2.append([float(line.split()[5]) for line in lines]) #Local Y
-qty2.append([float(line.split()[6]) for line in lines]) #Pt
+qty2.append([abs(float(line.split()[6])) for line in lines]) #Pt
 
 for iter in range(len(values)):
     plot(qty1[iter], qty2[iter], values[iter], save_name[iter], units[iter])

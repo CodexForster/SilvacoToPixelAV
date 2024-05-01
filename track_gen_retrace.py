@@ -1,5 +1,6 @@
 # Author: Danush Shekar, UIC (April 16, 2024)
 # Acknowledgement(s): Mohammad Abrar Wadud
+# Description: Generates tracks for PixelAV. NOTE: very probably that the Physics equations need to be updated.
 
 import matplotlib.pyplot as plt
 import random

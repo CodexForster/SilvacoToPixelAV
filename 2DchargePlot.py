@@ -1,5 +1,6 @@
 # Original author: https://github.com/nhanvtran/directional-pixel-detectors/blob/main/datagen.py
 # Modified by:     Danush Shekar, UIC (25 April, 2024) 
+# Description:     Parses PixelAV ouput files and also makes 2D plots of charge deposition in sensor array
 
 import sys
 import numpy as np

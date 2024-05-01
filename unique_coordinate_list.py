@@ -1,4 +1,5 @@
 # Author: Danush Shekar, UIC (March 26, 2024)
+# Description: Debugging exported data from Silvaco slices
 
 import csv
 import os

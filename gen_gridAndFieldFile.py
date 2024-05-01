@@ -1,4 +1,5 @@
-# Author: Danush Shekar, UIC (March 26, 2024)
+# Author:      Danush Shekar, UIC (March 26, 2024)
+# Description: Combine the grid & E.Field files generated from two perpendicular slices generated using merge_maps.py
 
 import csv
 from scipy.spatial import KDTree

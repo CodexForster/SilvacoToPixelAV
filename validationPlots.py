@@ -1,4 +1,5 @@
 # Author: Danush Shekar, UIC (April 7, 2024)
+# Description: Used for validating datasets made from Silvaco+PixelAV when compared with DF-ISE+PixelAV
 
 import sys
 import numpy as np

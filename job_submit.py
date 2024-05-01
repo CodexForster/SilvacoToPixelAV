@@ -1,4 +1,4 @@
-# Author: Danush Shekar, UIC (April 30, 2024)
+# Description: Script to run PixelAV on multiple cores whilest taking care of splitting the track_list accordingly
 
 import subprocess
 from multiprocessing import Pool
