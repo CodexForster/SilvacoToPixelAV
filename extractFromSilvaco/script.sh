@@ -35,7 +35,7 @@ python3 gen_gridAndFieldFile.py --prodname silvaco50x13
 python3 extract-2D.py --template template_E_Field_Z.set --set  cutZ_ --TwoDname map2Dz_ --ThreeDname ../cmsPixel_postBias_1V.str --zmin 0 --zmax 31.25 --step 1 > allCuts.txt
 source allCuts.txt
 deckbuild -run loop_Ex.in -outfile loop_Ex.out &
-python3 create-3D-map.py --prefix map2Dz_ --suffix _Potential.dat --outputname E_FieldX.dat --zmin 0 --zmax 31.25 --step 1
+python3 create-3D-map.py --prefix map2Dz_ --suffix _Potential.dat --outputname Potential_YX.dat --zmin 0 --zmax 31.25 --step 1
 
 # ========================
 # INTERPOLATION - LOCAL
