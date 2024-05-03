@@ -37,13 +37,24 @@ source allCuts.txt
 deckbuild -run loop_Ex.in -outfile loop_Ex.out &
 python3 create-3D-map.py --prefix map2Dz_ --suffix _Potential.dat --outputname Potential_YX.dat --zmin 0 --zmax 31.25 --step 1
 
+# Potential_YX.txt is generated from the prev step and should be stored in prodname folder
+python3 gen_wgtpotGridAndFieldFile.py --prodname silvaco50x13wgt
+
 # ========================
 # INTERPOLATION - LOCAL
 # ========================
-# export is optional
+# export is optional, 100 in last run-line stands for the bias voltage
 export PATH=$PATH:/Users/danush/Documents/PixelAV/silvaco_datagen/recipes_c-ansi/lib/
 gcc gen_efield.c -o gen_efield -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/ -I ./recipes_c-ansi/recipes/ ./recipes_c-ansi/lib/librecipes_c.a -lm
 ./gen_efield silvaco50x13 100
+
+# gen wpot
+gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/ -I ./recipes_c-ansi/recipes/ ./recipes_c-ansi/lib/librecipes_c.a -lm
+./gen_wpot silvaco50x13wgt 1
+
+# Note 1: You might have to change the NSTACK size, array initialization size based on the no. of vertices your TCAD data has. I also had commented out the plotting part of code as it looked for field from specific points in the midplane.
+# Note 2: recipes_c-ansi needs to be compiled and built:
+# change LIBDIR (line 21) in Makefile to lib/ which is a folder you will make in recipes_c-ansi. Then remove the comment on first line of file "airy.c" in recipes_c-ansi/recipes/. Then run make. (I also had to change gnumake to make).
 
 # example output for gen_efield
 # danush@danush silvaco_datagen % ./gen_efield silvaco50x13 100
@@ -59,11 +70,7 @@ gcc gen_efield.c -o gen_efield -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/
 # 100
 # zmin = 100.000000 um
 
-# gen wpot
-# Potential_YX.txt is generated from the prev step and should be stored in prodname folder
-python3 gen_wgtpotGridAndFieldFile.py --prodname silvaco50x13wgt
-gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/ -I ./recipes_c-ansi/recipes/ ./recipes_c-ansi/lib/librecipes_c.a -lm
-./gen_wpot silvaco50x13wgt 1
+# IMPORTANT: Don't forget to add the header files after making the interpolated data.
 
 # example output for gen_wpot
 # danush@danush silvaco_datagen % ./gen_wpot silvaco50x13wgt 1
