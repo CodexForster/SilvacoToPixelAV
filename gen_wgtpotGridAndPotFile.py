@@ -61,10 +61,8 @@ def read_coordinates(filename):
         data = []
         for row in reader:
             if row:
-                y_coord = float(row[1])
-                if y_coord < 3.0 and y_coord % 1 == 0:
-                    coord.append([float(row[0]), y_coord, float(row[2])])
-                    data.append([float(row[3])])
+                coord.append([float(row[0]), float(row[1]), float(row[2])])
+                data.append([float(row[3])])
         return (np.array(coord), np.array(data))
     
 
