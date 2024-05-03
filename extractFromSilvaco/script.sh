@@ -34,11 +34,12 @@ python3 gen_gridAndFieldFile.py --prodname silvaco50x13
 # ========================
 python3 extract-2D.py --template template_E_Field_Z.set --set  cutZ_ --TwoDname map2Dz_ --ThreeDname ../cmsPixel_postBias_1V.str --zmin 0 --zmax 31.25 --step 1 > allCuts.txt
 source allCuts.txt
+# Edit loop_Ex.in depending on the number of cuts
 deckbuild -run loop_Ex.in -outfile loop_Ex.out &
 python3 create-3D-map.py --prefix map2Dz_ --suffix _Potential.dat --outputname Potential_YX.dat --zmin 0 --zmax 31.25 --step 1
 
 # Potential_YX.txt is generated from the prev step and should be stored in prodname folder
-python3 gen_wgtpotGridAndFieldFile.py --prodname silvaco50x13wgt
+python3 gen_wgtpotGridAndPotFile.py --prodname silvaco50x13wgt
 
 # ========================
 # INTERPOLATION - LOCAL
@@ -84,11 +85,12 @@ gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/
 # 26 13 51
 # (nx, ny, nz) = (26, 13, 51)
 # enter the x y coordinates and tolerance for plot axis
-# 2 2 0.1
+# 2 2 1
 
 # ========================
 # TRACK GENERATION - LOCAL
 # ========================
+# If using conda env: myenv, no need of sourcing thisroot.sh
 source /opt/homebrew/bin/thisroot.sh 
 g++ -o genlist generate_cluster_inputs_low_pt.cxx `root-config --cflags --glibs`
 ./genlist
