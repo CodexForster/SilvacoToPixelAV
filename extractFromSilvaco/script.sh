@@ -1,7 +1,9 @@
 # ========================
 # ELECTRIC FIELD GEN - FST
 # ========================
-python3 extract-2D.py --template template_E_Field_Z.set --set  cutZ_ --TwoDname map2Dz_ --ThreeDname ../cmsPixel_postBias_-100V.str --zmin 0 --zmax 6.25 --step 0.1 > allCuts.txt
+cd xy_extract
+python3 extract-2D.py --template template_E_Field_Z.set --set  cutZ_ --TwoDname map2Dz_ --ThreeDname ../cmsPixel_50x13_postBias_-100V.str --zmin 0 --zmax 6.25 --step 0.1 > allCuts.txt
+# check if the ELEV value in cutZ_i has the correct sign. Can differ in tonyplot versions.
 source allCuts.txt
 # Edit loop_Ei.in depending on the number of cuts
 deckbuild -run loop_Ex.in -outfile loop_Ex.out &
@@ -13,7 +15,7 @@ python3 create-3D-map.py --prefix map2Dz_ --suffix _EFieldZ.dat --outputname E_F
 # important to pass inputs in this order
 python merge_maps.py --output EField_YX.txt --input E_FieldX.dat E_FieldY.dat E_FieldZ.dat
 
-python3 extract-2D.py --template template_E_Field_X.set --set  cutX_ --TwoDname map2Dx_ --ThreeDname ../cmsPixel_postBias_-100V.str --zmin 0 --zmax 25 --step 0.5 > allCuts.txt
+python3 extract-2D.py --template template_E_Field_X.set --set  cutX_ --TwoDname map2Dx_ --ThreeDname ../cmsPixel_50x13_postBias_-100V.str --zmin 0 --zmax 25 --step 0.5 > allCuts.txt
 source allCuts.txt
 # Edit loop_Ei.in depending on the number of cuts
 deckbuild -run loop_Ex.in -outfile loop_Ex.out &
@@ -28,18 +30,26 @@ python merge_maps.py --output EField_YZ.txt --input E_FieldX.dat E_FieldY.dat E_
 # gen final efield & grid files from silvaco data
 # EField_YX.txt and EField_YZ.txt are generated from the prev steps and should be stored in prodname folder
 python3 gen_gridAndFieldFile.py --prodname silvaco50x13
+# Validation - copy the relecant mesh and wgt_pot files (Raw data, no header files) to validation folder
+python3 validation/validateSilvacoData.py -e
 
 # ========================
 # WEIGHTING POTENTIAL GEN - FST
 # ========================
+cp ./cmsPixel_postBias_1V.str ./extract/
 python3 extract-2D.py --template template_E_Field_Z.set --set  cutZ_ --TwoDname map2Dz_ --ThreeDname ../cmsPixel_postBias_1V.str --zmin 0 --zmax 31.25 --step 1 > allCuts.txt
+# check if the ELEV value in cutZ_i has the correct sign. Can differ in tonyplot versions.
 source allCuts.txt
 # Edit loop_Ex.in depending on the number of cuts
 deckbuild -run loop_Ex.in -outfile loop_Ex.out &
 python3 create-3D-map.py --prefix map2Dz_ --suffix _Potential.dat --outputname Potential_YX.dat --zmin 0 --zmax 31.25 --step 1
-
+# copy to prodname folder
+cp ./Potential_YX.dat ../../Potential_YX.dat
 # Potential_YX.txt is generated from the prev step and should be stored in prodname folder
 python3 gen_wgtpotGridAndPotFile.py --prodname silvaco50x13wgt
+# check if the last five coordinates and potential values match
+# Validation - copy the relecant mesh and wgt_pot files (Raw data, no header files) to validation folder
+python3 validateSilvacoData.py -w
 
 # ========================
 # INTERPOLATION - LOCAL
@@ -57,6 +67,26 @@ gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/
 # Note 2: recipes_c-ansi needs to be compiled and built:
 # change LIBDIR (line 21) in Makefile to lib/ which is a folder you will make in recipes_c-ansi. Then remove the comment on first line of file "airy.c" in recipes_c-ansi/recipes/. Then run make. (I also had to change gnumake to make).
 
+# IMPORTANT: Don't forget to add the header files after making the interpolated data.
+
+# ========================
+# TRACK GENERATION - LOCAL
+# ========================
+# If using conda env: myenv, no need of sourcing thisroot.sh
+source /opt/homebrew/bin/thisroot.sh 
+g++ -o genlist generate_cluster_inputs_low_pt.cxx `root-config --cflags --glibs`
+./genlist
+
+# ========================
+# PIXELAV DATA GEN - LPC
+# ========================
+gcc -c ppixelav2_list_trkpy_n_2f.c
+gcc -o pixelavrun ppixelav2_list_trkpy_n_2f.o -lm
+ln -s ./dot1_50x13_phase3_100v_263k.init ppixel2.init
+ln -s ./weighting_BPix_50x13x100.init wgt_pot.init
+./pixelavrun 
+
+
 # example output for gen_efield
 # danush@danush silvaco_datagen % ./gen_efield silvaco50x13 100
 # Grid file = silvaco50x13/silvaco50x13_msh.grd, dessis plot file = silvaco50x13/silvaco50x13_100_des.dat
@@ -70,8 +100,6 @@ gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/
 # enter zmin (E = 0 for z>zmin) 
 # 100
 # zmin = 100.000000 um
-
-# IMPORTANT: Don't forget to add the header files after making the interpolated data.
 
 # example output for gen_wpot
 # danush@danush silvaco_datagen % ./gen_wpot silvaco50x13wgt 1
@@ -87,17 +115,17 @@ gcc gen_wpot.c -o gen_wpot -I ./recipes_c-ansi/include/ -I ./recipes_c-ansi/lib/
 # enter the x y coordinates and tolerance for plot axis
 # 2 2 1
 
-# ========================
-# TRACK GENERATION - LOCAL
-# ========================
-# If using conda env: myenv, no need of sourcing thisroot.sh
-source /opt/homebrew/bin/thisroot.sh 
-g++ -o genlist generate_cluster_inputs_low_pt.cxx `root-config --cflags --glibs`
-./genlist
-
-# ========================
-# PIXELAV DATA GEN - LPC
-# ========================
-gcc -c ppixelav2_list_trkpy_n_2f.c
-gcc -o pixelavrun ppixelav2_list_trkpy_n_2f.o -lm
-./pixelavrun 
+# example output for cluster generation
+# (rootenv) [cmspixelsim@localhost generate_cluster_inputs]$ ./genlist 
+# enter run number, flipped (0/1/2), number of clusters 
+# 1 0 2000000
+# opening file pt_cluster_cotangles_bp1_000001.txt
+# 0.030500 0.000609 
+# 0.040500 0.007572 
+# 0.050500 0.016002 ...
+# 2.090500 0.999677 
+# Info in <TCanvas::Print>: pdf file pt_clust.pdf has been created
+# Info in <TCanvas::Print>: Current canvas added to pdf file pt_clust.pdf
+# Info in <TCanvas::SaveSource>: C++ Macro file: pt_course.C has been generated
+# Info in <TCanvas::Print>: Current canvas added to pdf file pt_clust.pdf
+# Info in <TCanvas::Print>: pdf file pt_clust.pdf has been closed

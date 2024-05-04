@@ -106,6 +106,10 @@ def merge_data(coords1, data1):
 
 file1 = path+'Potential_YX.dat'
 (coord1, data1) = read_coordinates(file1)
+
+# Print the last five points
+print("Last five points in coord1:", coord1[-5:])
+print("Last five points in data1:", data1[-5:])
 npts = merge_data(coord1, data1)
 npts = int(npts)
 header_ef = f"""DF-ISE text
