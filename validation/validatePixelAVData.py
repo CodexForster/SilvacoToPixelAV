@@ -258,16 +258,16 @@ def main():
     # Scatter plot of Area vs theta_angle
     axs[0].scatter(theta_angle, Area, color='red', s=10, alpha=0.3, label='Silvaco')
     axs[0].set_xlabel('Theta (angle w.r.t. Z-axis) [deg.]')
-    axs[0].set_ylabel('Cluster size [pixel]')
-    axs[0].set_title('Silvaco: Cluster size vs Theta')
+    axs[0].set_ylabel('Total cluster size [pixel]')
+    axs[0].set_title('Silvaco: Total cluster size vs Theta')
     axs[0].legend()
     axs[0].grid(True)
     axs[0].set_xticks(np.arange(0, 91, 10))  # Set x-axis ticks    
     # Scatter plot of Area2 vs theta_angle2
     axs[1].scatter(theta_angle2, Area2, color='black', s=10, alpha=0.3, label='DF-ISE')
     axs[1].set_xlabel('Theta (angle w.r.t. Z-axis) [deg.]')
-    axs[1].set_ylabel('Cluster size [pixel]')
-    axs[1].set_title('DF-ISE: Cluster size vs Theta')
+    axs[1].set_ylabel('Total cluster size [pixel]')
+    axs[1].set_title('DF-ISE: Total cluster size vs Theta')
     axs[1].legend()
     axs[1].grid(True)
     axs[1].set_xticks(np.arange(0, 91, 10))  # Set x-axis ticks  
@@ -278,8 +278,8 @@ def main():
     # Scatter plot of Area vs theta_angle
     plt.scatter(theta_angle, Area - Area2, color='red', s=10, alpha=0.3, label='Silvaco - DF-ISE')
     plt.xlabel('Theta (angle w.r.t. Z-axis) [deg.]')
-    plt.ylabel('Total cluster size [pixel]')
-    plt.title('Total cluster size vs Theta')
+    plt.ylabel('Delta cluster size [pixel]')
+    plt.title('Delta cluster size vs Theta')
     plt.legend()
     plt.grid(True)
     plt.savefig('./deltaClusterSize_vs_theta_plot.png')
