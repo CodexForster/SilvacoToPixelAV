@@ -13,7 +13,7 @@ python3 create-3D-map.py --prefix map2Dz_ --suffix _EFieldX.dat --outputname E_F
 python3 create-3D-map.py --prefix map2Dz_ --suffix _EFieldY.dat --outputname E_FieldY.dat --zmin 0 --zmax 6.25 --step 0.1
 python3 create-3D-map.py --prefix map2Dz_ --suffix _EFieldZ.dat --outputname E_FieldZ.dat --zmin 0 --zmax 6.25 --step 0.1
 # important to pass inputs in this order
-python merge_maps.py --output EField_YX.txt --input E_FieldX.dat E_FieldY.dat E_FieldZ.dat
+python3 merge_maps.py --output EField_YX.txt --input E_FieldX.dat E_FieldY.dat E_FieldZ.dat
 
 python3 extract-2D.py --template template_E_Field_X.set --set  cutX_ --TwoDname map2Dx_ --ThreeDname ../cmsPixel_50x13_postBias_-100V.str --zmin 0 --zmax 25 --step 0.5 > allCuts.txt
 source allCuts.txt
@@ -25,7 +25,7 @@ python3 create-3D-map.py --prefix map2Dx_ --suffix _EFieldX.dat --outputname E_F
 python3 create-3D-map.py --prefix map2Dx_ --suffix _EFieldY.dat --outputname E_FieldY.dat --zmin 0 --zmax 25 --step 0.5
 python3 create-3D-map.py --prefix map2Dx_ --suffix _EFieldZ.dat --outputname E_FieldZ.dat --zmin 0 --zmax 25 --step 0.5
 # important to pass inputs in this order
-python merge_maps.py --output EField_YZ.txt --input E_FieldX.dat E_FieldY.dat E_FieldZ.dat
+python3 merge_maps.py --output EField_YZ.txt --input E_FieldX.dat E_FieldY.dat E_FieldZ.dat
 
 # gen final efield & grid files from silvaco data
 # EField_YX.txt and EField_YZ.txt are generated from the prev steps and should be stored in prodname folder
@@ -78,12 +78,20 @@ g++ -o genlist generate_cluster_inputs_low_pt.cxx `root-config --cflags --glibs`
 ./genlist
 
 # ========================
-# PIXELAV DATA GEN - LPC
+# PIXELAV DATA GEN
 # ========================
-gcc -c ppixelav2_list_trkpy_n_2f.c
-gcc -o pixelavrun ppixelav2_list_trkpy_n_2f.o -lm
 ln -s ./dot1_50x13_phase3_100v_263k.init ppixel2.init
 ln -s ./weighting_BPix_50x13x100.init wgt_pot.init
+./linkx64_icx ppixelav2_list_trkpy_n_2f
+python3 job_submit.py | tee output.txt
+
+# OR
+./linkx64_icx ppixelav2_list_trkpy_n_2f
+./ppixelav2_list_trkpy_n_2f 1
+
+# OR
+gcc -c ppixelav2_list_trkpy_n_2f.c
+gcc -o pixelavrun ppixelav2_list_trkpy_n_2f.o -lm
 ./pixelavrun 
 
 
@@ -129,3 +137,5 @@ ln -s ./weighting_BPix_50x13x100.init wgt_pot.init
 # Info in <TCanvas::SaveSource>: C++ Macro file: pt_course.C has been generated
 # Info in <TCanvas::Print>: Current canvas added to pdf file pt_clust.pdf
 # Info in <TCanvas::Print>: pdf file pt_clust.pdf has been closed
+
+# export QT_QPA_PLATFORM=offscreen 

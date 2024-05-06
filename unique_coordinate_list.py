@@ -67,7 +67,7 @@ if (task==1):
 
 elif (task==2):
     file1 = path+'EField_YX.txt'
-    file2 = path+'combined_data.txt'
+    file2 = path+'EField_YZ.txt'
     x_coords, y_coords, z_coords = unique_coordinates(file1, 'space')
 
     print("Unique X coordinates:", x_coords)
@@ -77,7 +77,7 @@ elif (task==2):
     print("Unique Z coordinates:", z_coords)
     print("=====================================")
 
-    x_coords, y_coords, z_coords = unique_coordinates(file2, 'csv')
+    x_coords, y_coords, z_coords = unique_coordinates(file2, 'space')
     print("Unique X coordinates:", x_coords)
     print("=====================================")
     print("Unique Y coordinates:", y_coords)

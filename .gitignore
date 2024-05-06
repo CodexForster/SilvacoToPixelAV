@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+Wpot.txt
+WpotMorris.txt
+mesh_Wpot.txt
+mesh_WpotMorris.txt
